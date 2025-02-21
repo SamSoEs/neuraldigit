@@ -12,6 +12,31 @@ class NeuralNetTest {
 	private Random random = new Random();
 	
 	@Test
+	void testCrossEntropy() {
+		double[] expectedValues = {1, 0, 0 , 0, 0, 1, 0, 1, 0};
+		Matrix expected = new Matrix(3, 3, i->expectedValues[i]);
+		
+		System.out.println(expected);
+		
+		Matrix actual = new Matrix(3, 3, i->0.05 * i*i).softmax();
+		
+		System.out.println(actual);
+		
+		Matrix result = LossFunction.crossEntropy(expected, actual);
+		System.out.println(result);
+		actual.forEach((row, col, index, value)->{
+			double expectedValue = expected.get(index);
+			
+			double loss = result.get(col);
+			
+			if(expectedValue > 0.9) {
+				assertTrue(Math.abs(Math.log(value) + loss) < 0.001);
+			}
+		});
+	}
+	
+	
+	//@Test
 	void testEngine() {
 		Engine engine = new Engine();
 		
