@@ -13,20 +13,29 @@ public class Engine implements Serializable {
 	private LinkedList<Matrix> weights = new LinkedList<>();
 	private LinkedList<Matrix> biases = new LinkedList<>();
 	
+	private LossFunction lossFunction = LossFunction.CROSSENTROPY;
 	
-
+	private boolean storeInputError = false;
 	
-	Matrix runForwards(Matrix input) {
+	BatchResult runForwards(Matrix input) {
+		
+		BatchResult batchResult = new BatchResult();
 		Matrix output = input;
 		
 		int denseIndex = 0;
+		
+		batchResult.addIo(output);
+		
 		for(var t: transforms) {
 			if(t == Transform.DENSE) {
+				
+				batchResult.addWeightInput(output);
 				Matrix weight = weights.get(denseIndex);
 				Matrix bias = biases.get(denseIndex);
 				
-				output = weight.multiply(output).modify((row, col, value) -> value + bias.get(col));
-				denseIndex++;
+				output = weight.multiply(output).modify((row, col, value) -> value + bias.get(row));
+						
+				++denseIndex;
 			}
 			else if(t == Transform.RELU) {
 				output = output.modify(value -> value > 0 ? value: 0);
@@ -34,9 +43,88 @@ public class Engine implements Serializable {
 			else if(t == Transform.SOFTMAX) {
 				output = output.softmax();
 			}
+			
+			batchResult.addIo(output);
 		}
 		
-		return output;
+		return batchResult;
+	}
+	
+//	public void adjust(BatchResult batchResult, double learningRate) {
+//		var weightInputs = batchResult.getWeightInputs();
+//		var weightErrors = batchResult.getWeightErrors();
+//		
+//		assert weightInputs.size() == weightErrors.size();
+//		assert weightInputs.size() == weights.size();
+//		
+//		for(int i = 0; i < weights.size(); i++) {
+//			var weight = weights.get(i);
+//			var bias = biases.get(i);
+//			var error = weightErrors.get(i);
+//			var input = weightInputs.get(i);
+//			
+//			assert weight.getCols() == input.getRows();
+//			
+//			var weightAdjust = error.multiply(input.transpose());
+//			var biasAdjust = error.averageColumn();
+//			
+//			double rate = learningRate/input.getCols();
+//			
+//			weight.modify((index, value)->value - rate * weightAdjust.get(index));
+//			bias.modify((row, col, value)->value - learningRate * biasAdjust.get(row));
+//		}
+//		
+//	}
+
+	
+	public void runBackwards(BatchResult batchResult, Matrix expected) {
+		
+		var transformsIt = transforms.descendingIterator();
+		
+		if(lossFunction != LossFunction.CROSSENTROPY || transforms.getLast() != Transform.SOFTMAX) {
+			throw new UnsupportedOperationException("Loss function must be cross entropy and last transform must be softmax");
+		}
+
+		
+		var ioIt = batchResult.getIo().descendingIterator();
+		var weightIt = weights.descendingIterator();
+		Matrix softmaxOutput = ioIt.next();
+		Matrix error = softmaxOutput.apply((index, value)->value - expected.get(index));
+		
+		while(transformsIt.hasNext()) {
+			Transform transform = transformsIt.next();
+			
+			Matrix input = ioIt.next();
+			
+			switch(transform) {
+			case DENSE:
+				Matrix weight = weightIt.next();
+				
+				batchResult.addWeightError(error);
+				
+				if(weightIt.hasNext() || storeInputError) {
+					error = weight.transpose().multiply(error);
+				}
+				break;
+			case RELU:
+				error = error.apply((index, value)->input.get(index) > 0 ? value: 0);
+				break;
+			case SOFTMAX:
+				break;
+			default:
+				throw new UnsupportedOperationException("Not implemented");
+			}
+			
+			//System.out.println(transform);
+		}
+		
+		if(storeInputError) {
+			batchResult.setInputError(error);
+		}
+	}
+	
+	public void setStoreInputError(boolean storeInputError) {
+		this.storeInputError = storeInputError;
 	}
 
 	public void add(Transform transform, double... params) {

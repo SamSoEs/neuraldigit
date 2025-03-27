@@ -9,6 +9,37 @@ import org.junit.jupiter.api.Test;
 class MatrixTest {
 	private Random random = new Random();
 	@Test
+	public void testTranspose() {
+		Matrix m = new Matrix(2, 3, i->i);
+		
+		Matrix result = m.transpose();
+		
+		double[] expectedValues = {0, 3, 1, 4, 2, 5};
+		Matrix expected = new Matrix(3, 2, i->expectedValues[i]);
+		
+		assertTrue(expected.equals(result));
+	}
+	@Test
+	public void testAddIncrement() {
+		Matrix m = new Matrix(5, 8, i->random.nextGaussian());
+		
+		int row = 3;
+		int col = 2;
+		double inc = 0.0001;
+		Matrix result = m.addIncrement(row, col, inc);
+		
+		double originalValue = m.get(row, col);
+		double icrementedValue = result.get(row, col);
+		
+		assertTrue(Math.abs(icrementedValue - (originalValue + inc)) < 0.0001);
+		
+		
+		
+		System.out.println(m);
+		System.out.println(result);
+		
+	}
+	@Test
 	public void testSoftMax() {
 		Matrix m = new Matrix(5, 8, i->random.nextGaussian());
 		

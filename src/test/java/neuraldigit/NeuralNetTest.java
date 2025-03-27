@@ -11,6 +11,199 @@ import matrix.Matrix;
 class NeuralNetTest {
 	private Random random = new Random();
 	
+	
+	@Test
+	void testEngine() {
+		Engine engine = new Engine();
+		
+		int inputRows = 5;
+		int cols = 6;
+		int outputRows = 4;
+		
+		engine.add(Transform.DENSE, 8, 5);
+		engine.add(Transform.RELU);
+		engine.add(Transform.DENSE, 5);
+		engine.add(Transform.RELU);
+		engine.add(Transform.DENSE, 4);
+		engine.add(Transform.SOFTMAX);
+		engine.setStoreInputError(true);
+		
+		Matrix input = Util.generateInputMatrix(inputRows, cols);
+		Matrix expected = Util.generateExpectedMatrix(outputRows, cols);
+		
+		Matrix approximatedError = Approximator.gradient(input, in -> {
+			BatchResult batchResult = engine.runForwards(in);
+			return LossFunctions.crossEntropy(expected, batchResult.getOutput());
+		});
+		BatchResult batchResult = engine.runForwards(input);
+		engine.runBackwards(batchResult, expected);
+		
+		Matrix calculatedError = batchResult.getInputError();
+
+		calculatedError.setTolerance(0.001);
+		
+		
+		assertTrue(calculatedError.equals(approximatedError));
+
+	}
+	
+	
+	@Test
+	void testBackpropWeights() {
+		
+		interface NeuralNet {
+			Matrix apply(Matrix m);
+		}
+
+		final int inputRows = 4;
+		final int cols = 5;
+		final int outputRows = 4;
+
+		Matrix input = new Matrix(inputRows, cols, i -> random.nextGaussian());
+
+		Matrix expected = new Matrix(outputRows, cols, i -> 0);
+		
+		Matrix weights = new Matrix(outputRows, inputRows, i -> random.nextGaussian());
+		Matrix biases = new Matrix(outputRows, 1, i -> random.nextGaussian());
+
+		for (int col = 0; col < cols; col++) {
+			int randomRow = random.nextInt(outputRows);
+
+			expected.set(randomRow, col, 1);
+		}
+		
+		NeuralNet neuralNet = m -> weights.multiply(m).modify((row, col, value) -> value + biases.get(row)).softmax();
+		Matrix softmaxOutput = neuralNet.apply(input);
+
+		
+		Matrix approximatedResult = Approximator.gradient(input, in -> {
+			Matrix out = neuralNet.apply(in);
+			return LossFunctions.crossEntropy(expected, out);
+		});
+
+		Matrix calculatedResult = softmaxOutput.apply((index, value) -> value - expected.get(index));
+		calculatedResult = weights.transpose().multiply(calculatedResult);
+
+		
+		assertTrue(approximatedResult.equals(calculatedResult));
+	}
+	
+	@Test
+	void testBackprop() {
+		
+		interface NeuralNet {
+			Matrix apply(Matrix m);
+		}
+
+		final int inputRows = 4;
+		final int cols = 5;
+		final int outputRows = 4;
+
+		Matrix input = new Matrix(inputRows, cols, i -> random.nextGaussian());
+
+		Matrix expected = new Matrix(outputRows, cols, i -> 0);
+		
+		Matrix weights = new Matrix(outputRows, inputRows, i -> random.nextGaussian());
+		Matrix biases = new Matrix(outputRows, 1, i -> random.nextGaussian());
+
+		for (int col = 0; col < cols; col++) {
+			int randomRow = random.nextInt(outputRows);
+
+			expected.set(randomRow, col, 1);
+		}
+		
+		NeuralNet neuralNet = m -> {
+			
+			Matrix out = m.apply((index, value) -> value > 0 ? value : 0);
+			out = weights.multiply(out);
+			out.modify((row, col, value) -> value + biases.get(row));
+			out = out.softmax();
+			
+			return out;
+					
+		};
+		Matrix softmaxOutput = neuralNet.apply(input);
+
+		
+		Matrix approximatedResult = Approximator.gradient(input, in -> {
+			Matrix out = neuralNet.apply(in);
+			return LossFunctions.crossEntropy(expected, out);
+		});
+
+		Matrix calculatedResult = softmaxOutput.apply((index, value) -> value - expected.get(index));
+		calculatedResult = weights.transpose().multiply(calculatedResult);
+		calculatedResult = calculatedResult.apply((index, value) -> input.get(index) > 0 ? value: 0);
+		
+		assertTrue(approximatedResult.equals(calculatedResult));
+	}
+	
+	
+	
+	@Test
+	void testSoftmaxCrossEntropyGradient() {
+
+		final int rows = 4;
+		final int cols = 5;
+
+		Matrix input = new Matrix(rows, cols, i -> random.nextGaussian());
+
+		Matrix expected = new Matrix(rows, cols, i -> 0);
+
+		for (int col = 0; col < cols; col++) {
+			int randomRow = random.nextInt(rows);
+
+			expected.set(randomRow, col, 1);
+		}
+		
+		Matrix softmaxOutput = input.softmax();
+		
+		Matrix result = Approximator.gradient(input, in -> {
+			return LossFunctions.crossEntropy(expected, in.softmax());
+		});
+		
+		result.forEach((index, value)->{
+			double softmaxValue = softmaxOutput.get(index);
+			double expectedValue = expected.get(index);
+			assertTrue(Math.abs(value - (softmaxValue - expectedValue)) < 0.01);
+		});
+
+	}
+	
+	
+	@Test
+	void testApproximator() {
+
+		final int rows = 4;
+		final int cols = 5;
+
+		Matrix input = new Matrix(rows, cols, i -> random.nextGaussian()).softmax();
+
+		Matrix expected = new Matrix(rows, cols, i -> 0);
+
+		for (int col = 0; col < cols; col++) {
+			int randomRow = random.nextInt(rows);
+
+			expected.set(randomRow, col, 1);
+		}
+
+		Matrix result = Approximator.gradient(input, in -> {
+			return LossFunctions.crossEntropy(expected, in);
+		});
+
+		input.forEach((index, value) -> {
+			double resultValue = result.get(index);
+			double expectedValue = expected.get(index);
+
+			if (expectedValue < 0.001) {
+				assertTrue(Math.abs(resultValue) < 0.01);
+			} else {
+				assertTrue(Math.abs(resultValue + 1.0 / value) < 0.01);
+			}
+		});
+
+	}
+	
+	
 	@Test
 	void testCrossEntropy() {
 		double[] expectedValues = {1, 0, 0 , 0, 0, 1, 0, 1, 0};
@@ -22,7 +215,7 @@ class NeuralNetTest {
 		
 		System.out.println(actual);
 		
-		Matrix result = LossFunction.crossEntropy(expected, actual);
+		Matrix result = LossFunctions.crossEntropy(expected, actual);
 		System.out.println(result);
 		actual.forEach((row, col, index, value)->{
 			double expectedValue = expected.get(index);
@@ -36,25 +229,6 @@ class NeuralNetTest {
 	}
 	
 	
-	//@Test
-	void testEngine() {
-		Engine engine = new Engine();
-		
-		engine.add(Transform.DENSE, 8, 5);
-		engine.add(Transform.RELU);
-		engine.add(Transform.DENSE, 5);
-		engine.add(Transform.RELU);
-		engine.add(Transform.DENSE, 4);
-		engine.add(Transform.SOFTMAX);
-		
-		Matrix input = new Matrix(5, 4, i->random.nextGaussian());
-		Matrix output = engine.runForwards(input);
-		
-		System.out.println(engine);
-		
-		System.out.println(output);
-
-	}
 	
 	// @Test
 		void testTemp() {
