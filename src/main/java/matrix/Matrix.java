@@ -81,6 +81,25 @@ public class Matrix {
 
 		return this;
 	}
+	public Matrix modify(ValueProducer producer) {
+
+		for (int i = 0; i < a.length; ++i) {
+
+			a[i] = producer.produce(a[i]);
+		}
+
+		return this;
+	}
+	
+	public Matrix modify(IndexValueProducer producer) {
+
+		for (int i = 0; i < a.length; ++i) {
+
+			a[i] = producer.produce(i, a[i]);
+		}
+
+		return this;
+	}
 	
 	public void forEach(RowColIndexValueConsumer consumer) {
 		int index = 0;
@@ -91,6 +110,7 @@ public class Matrix {
 			}
 		}
 	}
+	
 	public void forEach(RowColValueConsumer consumer) {
 		int index = 0;
 		
@@ -100,21 +120,11 @@ public class Matrix {
 			}
 		}
 	}
+	
 	public void forEach(IndexValueConsumer consumer) {
 		for (int i = 0; i < a.length; ++i) {
 			consumer.consume(i, a[i]);
 		}
-	}
-
-
-	public Matrix modify(ValueProducer producer) {
-
-		for (int i = 0; i < a.length; ++i) {
-
-			a[i] = producer.produce(a[i]);
-		}
-
-		return this;
 	}
 	
 	
@@ -133,6 +143,26 @@ public class Matrix {
 
 		}
 
+		return result;
+	}
+	
+	public Matrix getGreatestRowNumbers() {
+		Matrix result = new Matrix(1, cols);
+		
+		double[] greatest = new double[cols];
+		
+		for(int i = 0; i < cols; i++) {
+			greatest[i] = Double.MIN_VALUE;
+		}
+	
+		forEach((row, col, value)->{
+			if(value > greatest[col]) {
+				greatest[col] = value;
+				result.a[col] = row;
+			}
+				
+		});
+		
 		return result;
 	}
 	
@@ -163,6 +193,15 @@ public class Matrix {
 		return result;
 	}
 	
+	public Matrix averageColumn() {
+		Matrix result = new Matrix(rows, 1);
+		
+		forEach((row, col, index, value)->{
+			result.a[row] += value/cols;
+		});
+		
+		return result;
+	}
 	
 	public Matrix softmax() {
 		Matrix result = new Matrix(rows, cols, i->Math.exp(a[i]));

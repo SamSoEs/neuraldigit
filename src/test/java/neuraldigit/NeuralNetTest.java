@@ -11,7 +11,82 @@ import matrix.Matrix;
 class NeuralNetTest {
 	private Random random = new Random();
 	
+	@Test
+	void testTrainEngine() {
+		int inputRows = 500;
+		int cols = 32;
+		int outputRows = 3;
+
+		Engine engine = new Engine();
+		engine.add(Transform.DENSE, 100, inputRows);
+		engine.add(Transform.RELU);
+		engine.add(Transform.DENSE, outputRows);
+		engine.add(Transform.SOFTMAX);
+			
+			RunningAverages runningAverages = new RunningAverages(2, 500, (callNumber, averages)->{
+				assertTrue(averages[0] < 6);
+				//System.out.printf("%d. Loss: %.3f -- Percent correct: %.2f\n", callNumber, averages[0], averages[1]);
+			});
+			
+			double initialLearningRate = 0.02;
+			double learningRate = initialLearningRate;
+			double iterations = 500;
+				
+		for (int i = 0; i < iterations; i++) {
+				var tm = Util.generateTrainingMatrixes(inputRows, outputRows, cols);
+				var input = tm.getInput();
+				var expected = tm.getOutput();
+				
+			BatchResult batchResult = engine.runForwards(input);
+			engine.runBackwards(batchResult, expected);
+			engine.adjust(batchResult, learningRate);
+			engine.evaluate(batchResult, expected);
+
+			runningAverages.add(batchResult.getLoss(), batchResult.getPercentCorrect());
+			
+			learningRate -= (initialLearningRate/iterations);
+		}
+	}
 	
+	@Test
+	public void testAverageColumn() {
+		int rows = 7;
+		int cols = 5;
+		
+		Matrix m = new Matrix(rows, cols, i->2 * i - 3);
+		
+		double averageIndex = (cols - 1)/2.0;
+		
+		Matrix expected = new Matrix(rows, 1);
+		expected.modify((row, col, value)->2 * (row * cols + averageIndex) - 3);
+		
+		Matrix result = m.averageColumn();
+		assertTrue(expected.equals(result));
+	}
+	
+	@Test
+	void testWeightGradient() {
+		int inputRows = 4;
+		int outputRows = 5;
+		
+		Matrix weights = new Matrix(outputRows, inputRows, i->random.nextGaussian());
+		Matrix input = Util.generateInputMatrix(inputRows, 1);
+		Matrix expected = Util.generateExpectedMatrix(outputRows, 1);
+		
+		Matrix output = weights.multiply(input).softmax();
+		Matrix loss = LossFunctions.crossEntropy(expected, output);
+		
+		Matrix calculatedError = output.apply((index, value)-> value - expected.get(index));
+		
+		Matrix calculatedWeightsGradients = calculatedError.multiply(input.transpose());
+		Matrix approximatedWeightsGradients =  Approximator.weightGradient(weights, w -> {
+				Matrix out = w.multiply(input).softmax();
+				return LossFunctions.crossEntropy(expected, out);
+		});
+		calculatedWeightsGradients.setTolerance(0.01);
+		assertTrue(calculatedWeightsGradients.equals(approximatedWeightsGradients));	
+		
+	}
 	@Test
 	void testEngine() {
 		Engine engine = new Engine();

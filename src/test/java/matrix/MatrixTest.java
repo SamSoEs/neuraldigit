@@ -8,6 +8,22 @@ import org.junit.jupiter.api.Test;
 
 class MatrixTest {
 	private Random random = new Random();
+	
+	@Test
+	public void testGetGreatesRowNumbers() {
+		double[] values = {2, -6, 7, 7, 2, -6, 11, -1, 1};
+		Matrix m = new Matrix(3, 3, i-> values[i]);
+		
+		Matrix result = m.getGreatestRowNumbers();
+		
+		double[] expectedValues = {2, 1, 0};
+		Matrix expected = new Matrix(1, 3, i-> expectedValues[i]);
+		
+		assertTrue(expected.equals(result));
+
+	}
+	
+	
 	@Test
 	public void testTranspose() {
 		Matrix m = new Matrix(2, 3, i->i);

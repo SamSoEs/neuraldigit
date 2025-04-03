@@ -17,6 +17,32 @@ public class Engine implements Serializable {
 	
 	private boolean storeInputError = false;
 	
+	
+	public void evaluate(BatchResult batchResult, Matrix expected) {
+		
+		if(lossFunction != LossFunction.CROSSENTROPY) {
+			throw new UnsupportedOperationException("Only cross entropy loss is supported");
+		}
+		
+		double loss = LossFunctions.crossEntropy(expected, batchResult.getOutput()).averageColumn().get(0);
+		
+		Matrix predictions = batchResult.getOutput().getGreatestRowNumbers();
+		Matrix actual = expected.getGreatestRowNumbers();
+		
+		int correct = 0;
+		
+		for(int i = 0; i < actual.getCols(); i++) {
+			if((int)actual.get(i) == (int)predictions.get(i)) {
+				++correct;
+			}
+		}
+		
+		double percentCorrect = (100.0 * correct)/actual.getCols();
+		
+		batchResult.setLoss(loss);
+		batchResult.setPercentCorrect(percentCorrect);
+	}
+	
 	BatchResult runForwards(Matrix input) {
 		
 		BatchResult batchResult = new BatchResult();
@@ -50,31 +76,31 @@ public class Engine implements Serializable {
 		return batchResult;
 	}
 	
-//	public void adjust(BatchResult batchResult, double learningRate) {
-//		var weightInputs = batchResult.getWeightInputs();
-//		var weightErrors = batchResult.getWeightErrors();
-//		
-//		assert weightInputs.size() == weightErrors.size();
-//		assert weightInputs.size() == weights.size();
-//		
-//		for(int i = 0; i < weights.size(); i++) {
-//			var weight = weights.get(i);
-//			var bias = biases.get(i);
-//			var error = weightErrors.get(i);
-//			var input = weightInputs.get(i);
-//			
-//			assert weight.getCols() == input.getRows();
-//			
-//			var weightAdjust = error.multiply(input.transpose());
-//			var biasAdjust = error.averageColumn();
-//			
-//			double rate = learningRate/input.getCols();
-//			
-//			weight.modify((index, value)->value - rate * weightAdjust.get(index));
-//			bias.modify((row, col, value)->value - learningRate * biasAdjust.get(row));
-//		}
-//		
-//	}
+	public void adjust(BatchResult batchResult, double learningRate) {
+		var weightInputs = batchResult.getWeightInputs();
+		var weightErrors = batchResult.getWeightErrors();
+		
+		assert weightInputs.size() == weightErrors.size();
+		assert weightInputs.size() == weights.size();
+		
+		for(int i = 0; i < weights.size(); i++) {
+			var weight = weights.get(i);
+			var bias = biases.get(i);
+			var error = weightErrors.get(i);
+			var input = weightInputs.get(i);
+			
+			assert weight.getCols() == input.getRows();
+			
+			var weightAdjust = error.multiply(input.transpose());
+			var biasAdjust = error.averageColumn();
+			
+			double rate = learningRate/input.getCols();
+			
+			weight.modify((index, value)->value - rate * weightAdjust.get(index));
+			bias.modify((row, col, value)->value - learningRate * biasAdjust.get(row));
+		}
+		
+	}
 
 	
 	public void runBackwards(BatchResult batchResult, Matrix expected) {

@@ -58,15 +58,15 @@ public class Util {
 //		return new TrainingArrays(input, output);
 //	}
 //	
-//	public static TrainingMatrixes generateTrainingMatrixes(int inputRows, int outputRows, int cols) {
-//		
-//		var io = generateTrainingArrays(inputRows, outputRows, cols);
-//		
-//		Matrix input = new Matrix(inputRows, cols, io.getInput());
-//		Matrix output = new Matrix(outputRows, cols, io.getOutput());
-//		
-//		return new TrainingMatrixes(input, output);
-//	}
+	public static TrainingMatrixes generateTrainingMatrixes(int inputRows, int outputRows, int cols) {
+		
+		var io = generateTrainingArrays(inputRows, outputRows, cols);
+		
+		Matrix input = new Matrix(inputRows, cols, io.getInput());
+		Matrix output = new Matrix(outputRows, cols, io.getOutput());
+		
+		return new TrainingMatrixes(input, output);
+	}
 
 
 	public static Matrix generateTrainableExpectedMatrix(int outputRows, Matrix input) {
