@@ -23,41 +23,41 @@ public class Util {
 		return expected;
 	}
 
-//	public static TrainingArrays generateTrainingArrays(int inputSize, int outputSize, int numberItems) {
-//		
-//		double[] input = new double[inputSize * numberItems];
-//		double[] output = new double[outputSize * numberItems];
-//		
-//		int inputPos = 0;
-//		int outputPos = 0;
-//		
-//		for(int col = 0; col < numberItems; col++) {
-//			int radius = random.nextInt(outputSize);
-//			
-//			double[] values = new double[inputSize];
-//			
-//			double initialRadius = 0;
-//			
-//			for(int row = 0; row < inputSize; row++) {
-//				double value = random.nextGaussian();
-//				values[row] = value;
-//				initialRadius += value * value;
-//			}
-//			
-//			initialRadius = Math.sqrt(initialRadius);
-//			
-//			for(int row = 0; row < inputSize; row++) {
-//				input[inputPos++] = values[row] * radius/initialRadius;
-//			}
-//			
-//			output[outputPos + radius] = 1;
-//			
-//			outputPos += outputSize;
-//		}
-//		
-//		return new TrainingArrays(input, output);
-//	}
-//	
+	public static TrainingArrays generateTrainingArrays(int inputSize, int outputSize, int numberItems) {
+		
+		double[] input = new double[inputSize * numberItems];
+		double[] output = new double[outputSize * numberItems];
+		
+		int inputPos = 0;
+		int outputPos = 0;
+		
+		for(int col = 0; col < numberItems; col++) {
+			int radius = random.nextInt(outputSize);
+			
+			double[] values = new double[inputSize];
+			
+			double initialRadius = 0;
+			
+			for(int row = 0; row < inputSize; row++) {
+				double value = random.nextGaussian();
+				values[row] = value;
+				initialRadius += value * value;
+			}
+			
+			initialRadius = Math.sqrt(initialRadius);
+			
+			for(int row = 0; row < inputSize; row++) {
+				input[inputPos++] = values[row] * radius/initialRadius;
+			}
+			
+			output[outputPos + radius] = 1;
+			
+			outputPos += outputSize;
+		}
+		
+		return new TrainingArrays(input, output);
+	}
+	
 	public static TrainingMatrixes generateTrainingMatrixes(int inputRows, int outputRows, int cols) {
 		
 		var io = generateTrainingArrays(inputRows, outputRows, cols);

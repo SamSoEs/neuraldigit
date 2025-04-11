@@ -1,9 +1,13 @@
 package matrix;
 
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Objects;
 
-public class Matrix {
+public class Matrix implements Serializable{
+	
+
+	private static final long serialVersionUID = 1L;
 	
 	private static final String NUMBER_FORMAT = "%+12.5f";
 	private double tolerance = 0.000001;
@@ -48,6 +52,17 @@ public class Matrix {
 		for(int i = 0; i < a.length; i++) {
 			a[i] = producer.produce(i);
 		}
+	}
+	
+	public Matrix(int rows, int cols, double[] values) {
+		
+		this.rows = rows;
+		this.cols = cols;
+		
+		Matrix tmp = new Matrix(cols, rows);
+		tmp.a = values;
+		Matrix transposed = tmp.transpose();
+		a = transposed.a;	
 	}
 	
 	public int getRows() {
@@ -146,6 +161,13 @@ public class Matrix {
 		return result;
 	}
 	
+	public double sum(){
+		double sum = 0;
+		for(var v:a) {
+			sum += v;
+		}
+		return sum;
+	}
 	public Matrix getGreatestRowNumbers() {
 		Matrix result = new Matrix(1, cols);
 		
@@ -283,6 +305,10 @@ public class Matrix {
 			sb.append("\n");
 		}
 		return sb.toString();
+	}
+
+	public double[] get() {
+		return a;
 	}
 	
 }

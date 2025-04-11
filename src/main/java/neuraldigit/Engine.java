@@ -1,11 +1,12 @@
 package neuraldigit;
 
-
 import java.io.Serializable;
 import java.util.LinkedList;
 import java.util.Random;
 
 import matrix.Matrix;
+
+
 
 public class Engine implements Serializable {
 	private static final long serialVersionUID = 1L;
@@ -14,9 +15,13 @@ public class Engine implements Serializable {
 	private LinkedList<Matrix> biases = new LinkedList<>();
 	
 	private LossFunction lossFunction = LossFunction.CROSSENTROPY;
+	private double scaleInitialWeights = 1;
 	
 	private boolean storeInputError = false;
 	
+	public void setScaleInitialWeights(double scale) {
+		scaleInitialWeights = scale;
+	}
 	
 	public void evaluate(BatchResult batchResult, Matrix expected) {
 		
@@ -47,7 +52,6 @@ public class Engine implements Serializable {
 		
 		BatchResult batchResult = new BatchResult();
 		Matrix output = input;
-		
 		int denseIndex = 0;
 		
 		batchResult.addIo(output);
@@ -161,7 +165,7 @@ public class Engine implements Serializable {
 			int numberNeurons = (int)params[0];
 			int weightsPerNeuron = weights.size() == 0 ? (int)params[1]: weights.getLast().getRows();
 			
-			Matrix weight = new Matrix(numberNeurons, weightsPerNeuron, i->random.nextGaussian());
+			Matrix weight = new Matrix(numberNeurons, weightsPerNeuron, i-> scaleInitialWeights * random.nextGaussian());
 			Matrix bias = new Matrix(numberNeurons, 1, i->0);
 			
 			weights.add(weight);
