@@ -1,52 +1,56 @@
-import neuraldigit.NeuralNetwork;
-import neuraldigit.Transform;
+import java.io.DataInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+
+import neuraldigit.loader.BatchData;
 import neuraldigit.loader.Loader;
-import neuraldigit.loader.test.TestLoader;
+import neuraldigit.loader.MetaData;
+import neuraldigit.loader.image.ImageLoader;
+import neuraldigit.loader.image.LoaderException;
 
 public class App {
+
 	public static void main(String[] args) {
 		
-		String filename = "neural1.net";
+final String filename = "mnistNeural0.net";
 		
-		System.out.println("Number of processors on this machine: " + Runtime.getRuntime().availableProcessors());
-		NeuralNetwork neuralNetwork= NeuralNetwork.load(filename);
-		if(neuralNetwork == null) {
-			System.out.println("Unable to load neural network from saved");
-			
-			
-			int inputRows = 10;
-			int outputRows = 3;
-			
-			neuralNetwork = new NeuralNetwork();
-			neuralNetwork.add(Transform.DENSE, 100, inputRows);
-			neuralNetwork.add(Transform.RELU);
-			neuralNetwork.add(Transform.DENSE, 50);
-			neuralNetwork.add(Transform.RELU);
-			neuralNetwork.add(Transform.DENSE, outputRows);
-			neuralNetwork.add(Transform.SOFTMAX);
-			
-			neuralNetwork.setScaleInitialWeights(0.2);
-			neuralNetwork.setThreads(4);
-			neuralNetwork.setEpochs(1);
-			neuralNetwork.setLearningRates(0.02, 0);
-		}
-		else {
-			System.out.println("Loaded from " + filename);
+		if(args.length == 0) {
+			System.out.println("usage: [app] <MNIST DATA DIRECTORY>");
+			return;
 		}
 		
+		File dir = new File(args[0]);
 		
-		System.out.println(neuralNetwork);
+		if(!dir.isDirectory()) {
+			try {
+				System.out.println(dir.getCanonicalPath() + " is not a directory.");
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			
+			return;
+		}
+		
+		String directory =args[0];
+		
+		final String trainImages = String.format("%s%s%s", directory, File.separator, "train-images.idx3-ubyte");
+		final String trainLabels = String.format("%s%s%s", directory, File.separator, "train-labels.idx1-ubyte");
+		final String testImages = String.format("%s%s%s", directory, File.separator, "t10k-images.idx3-ubyte");
+		final String testLabels = String.format("%s%s%s", directory, File.separator, "t10k-labels.idx1-ubyte");
+		
+		Loader trainLoader = new ImageLoader(trainImages, trainLabels, 32);
+		Loader testLoader = new ImageLoader(testImages, testLabels, 32);
+		
+		trainLoader.open();
+		MetaData metaData = testLoader.open();
+		
+		for(int i = 0; i < metaData.getNumberBatches(); i++) {
+			BatchData batchData = testLoader.readBatch();
+		}
+		trainLoader.close();
+		testLoader.close();
 
-		Loader trainLoader = new TestLoader(60_000, 32);
-		Loader testLoader = new TestLoader(10_000, 32);
-		
-		neuralNetwork.fit(trainLoader, testLoader);
-		if(neuralNetwork.save(filename)) {
-			System.out.println("Saved to " + filename);
-		}
-		else {
-			System.out.println("Unable to save to " + filename);
-		}
-		
 	}
+
 }
